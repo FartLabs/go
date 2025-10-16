@@ -1,6 +1,8 @@
 # `@fartlabs/go`
 
 [![GitHub Actions](https://github.com/FartLabs/go/actions/workflows/check.yaml/badge.svg)](https://github.com/FartLabs/go/actions/workflows/check.yaml)
+[![JSR](https://jsr.io/badges/@fartlabs/go)](https://jsr.io/@fartlabs/go)
+[![JSR score](https://jsr.io/badges/@fartlabs/go/score)](https://jsr.io/@fartlabs/go/score)
 
 URL shortener with Deno.
 
