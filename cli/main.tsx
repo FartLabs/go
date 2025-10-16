@@ -77,7 +77,7 @@ function GoRouter(props: { service: GoService }) {
     <Router error={(error) => Response.json({ error: error.message })}>
       <Post
         pattern="/api"
-        handle={async (ctx) => {
+        handler={async (ctx) => {
           if (!isAuthorized(ctx.request.headers)) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
@@ -92,7 +92,7 @@ function GoRouter(props: { service: GoService }) {
       />
       <Delete
         pattern="/api"
-        handle={async (ctx) => {
+        handler={async (ctx) => {
           if (!isAuthorized(ctx.request.headers)) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
@@ -104,14 +104,14 @@ function GoRouter(props: { service: GoService }) {
       />
       <Get
         pattern="/api"
-        handle={async () => {
+        handler={async () => {
           const shortlinks = await props.service.shortlinks();
           return Response.json(shortlinks);
         }}
       />
       <Get
         pattern="/favicon.ico"
-        handle={() =>
+        handler={() =>
           new Response(
             null,
             {
@@ -122,7 +122,7 @@ function GoRouter(props: { service: GoService }) {
       />
       <Get
         pattern="/"
-        handle={() =>
+        handler={() =>
           new Response(
             <HTML>
               <HEAD>
@@ -175,9 +175,10 @@ function GoRouter(props: { service: GoService }) {
       />
       <Get
         pattern="/:path*"
-        handle={async (ctx) => {
+        handler={async (ctx) => {
           const shortlinks = await props.service.shortlinks();
-          const destination = go(ctx.url, shortlinks);
+          const url = new URL(ctx.request.url);
+          const destination = go(url, shortlinks);
           return new Response(
             null,
             {

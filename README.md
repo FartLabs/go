@@ -1,8 +1,8 @@
-# go.fart.tools
+# `@fartlabs/go`
 
-[![GitHub Actions](https://github.com/FartLabs/rtx/actions/workflows/check.yaml/badge.svg)](https://github.com/FartLabs/rtx/actions/workflows/check.yaml)
+[![GitHub Actions](https://github.com/FartLabs/go/actions/workflows/check.yaml/badge.svg)](https://github.com/FartLabs/go/actions/workflows/check.yaml)
 
-Link shortening service with Deno.
+URL shortener with Deno.
 
 ## Contribute
 

@@ -3,9 +3,9 @@ import { go } from "./go.ts";
 
 Deno.test("go resolves shortlinks", () => {
   const actual = go(new URL("https://example.com/github"), {
-    github: "https://github.com/FartLabs/go.fart.tools",
+    github: "https://github.com/FartLabs/go",
   });
-  const expected = new URL("https://github.com/FartLabs/go.fart.tools");
+  const expected = new URL("https://github.com/FartLabs/go");
   assertEquals(actual.href, expected.href);
 });
 
@@ -17,13 +17,13 @@ Deno.test("go throws for circularly recursive shortlinks", () => {
     });
   }
 
-  let error;
+  let error: Error | undefined;
   try {
     testCircularShortlinks();
   } catch (e) {
-    error = e;
+    error = e as Error;
   } finally {
-    assertEquals(error.message, "too many internal redirects");
+    assertEquals(error?.message, "too many internal redirects");
   }
 });
 
