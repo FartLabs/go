@@ -4,9 +4,9 @@
  * @param shortlinks collection of shortlinks.
  * @returns the computed destination URL.
  */
-export function go<ID extends string>(
+export function go(
   url: URL,
-  shortlinks: Record<ID, string>,
+  shortlinks: Record<string, string>,
 ): URL {
   const foundURL = findURL(url.pathname, shortlinks, url.origin);
   if (!foundURL) {
