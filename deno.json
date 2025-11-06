@@ -1,18 +1,17 @@
 {
   "lock": false,
   "name": "@fartlabs/go",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "exports": "./go.ts",
   "imports": {
     "go/": "./",
-    "@fartlabs/htx": "jsr:@fartlabs/htx@^0.0.10",
-    "@fartlabs/jsonx": "jsr:@fartlabs/jsonx@^0.0.11",
-    "@fartlabs/rtx": "jsr:@fartlabs/rtx@^0.0.15",
+    "@fartlabs/htx": "jsr:@fartlabs/htx@^0.0.11",
+    "@fartlabs/rtx": "jsr:@fartlabs/rtx@^0.0.16",
     "@std/assert": "jsr:@std/assert@^1.0.15"
   },
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@fartlabs/jsonx"
+    "jsxImportSource": "@fartlabs/htx"
   },
   "tasks": {
     "start": "deno run --unstable-kv --env -A cli/main.tsx"

@@ -103,3 +103,31 @@ Deno.test("go resolves subdomain destination", () => {
   const actual = go(input, { "foo/bar": "https://foobar.example.com/example" });
   assertEquals(actual.href, expected.href);
 });
+
+Deno.test("backwards compat: version migration preserves deep links", () => {
+  const input = new URL("https://example.com/docs/v1/getting-started");
+  const actual = go(input, {
+    "docs/v1": "/docs/latest",
+  });
+  const expected = new URL("https://example.com/docs/latest/getting-started");
+  assertEquals(actual.href, expected.href);
+});
+
+Deno.test("backwards compat: alias rename forwards to new absolute destination", () => {
+  const input = new URL("https://example.com/handbook/intro");
+  const actual = go(input, {
+    handbook: "/guide",
+    guide: "https://docs.example.com",
+  });
+  const expected = new URL("https://docs.example.com/intro");
+  assertEquals(actual.href, expected.href);
+});
+
+Deno.test("backwards compat: section deprecation with host move keeps deep links", () => {
+  const input = new URL("https://example.com/blog/2023/launch");
+  const actual = go(input, {
+    blog: "https://news.example.com",
+  });
+  const expected = new URL("https://news.example.com/2023/launch");
+  assertEquals(actual.href, expected.href);
+});

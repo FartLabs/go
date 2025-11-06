@@ -17,7 +17,8 @@ export function go(
     foundURL;
   const hash = url.hash || initialHash || dst.hash;
   const query = combineQueries(dst.search, initialQuery, url.search);
-  return new URL(`${dst.origin}${dst.pathname}${pathname}${query}${hash}`);
+  const joinedPathname = joinPathnames(dst.pathname, pathname);
+  return new URL(`${dst.origin}${joinedPathname}${query}${hash}`);
 }
 
 interface FoundURL {
@@ -113,4 +114,21 @@ function combineQueries(baseQuery: string, ...queries: string[]): string {
 
   const query = baseQueryParams.toString();
   return query.length > 0 ? `?${query}` : "";
+}
+
+function joinPathnames(basePathname: string, suffixPathname: string): string {
+  if (!suffixPathname) return basePathname;
+  if (!basePathname) return suffixPathname;
+
+  const baseEndsWithSlash = basePathname.endsWith("/");
+  const suffixStartsWithSlash = suffixPathname.startsWith("/");
+  if (baseEndsWithSlash && suffixStartsWithSlash) {
+    return basePathname + suffixPathname.slice(1);
+  }
+
+  if (!baseEndsWithSlash && !suffixStartsWithSlash) {
+    return `${basePathname}/${suffixPathname}`;
+  }
+
+  return basePathname + suffixPathname;
 }
