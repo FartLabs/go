@@ -202,10 +202,10 @@ This project is licensed under the Do What The Fuck You Want To Public License
 
 ## References
 
-- JSR package: `https://jsr.io/@fartlabs/go`
+- JSR package: <https://jsr.io/@fartlabs/go>
 - Internet-Draft:
   [IETF Datatracker](https://datatracker.ietf.org/doc/draft-go-protocol/)
-- Protocol spec repo: `https://github.com/EthanThatOneKid/go-protocol/`
+- Protocol spec repo: <https://github.com/EthanThatOneKid/go-protocol/>
 
 ## Web Server
 
