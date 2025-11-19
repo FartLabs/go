@@ -206,6 +206,9 @@ This project is licensed under the Do What The Fuck You Want To Public License
 - Internet-Draft:
   [IETF Datatracker](https://datatracker.ietf.org/doc/draft-go-protocol/)
 - Protocol spec repo: <https://github.com/EthanThatOneKid/go-protocol/>
+- Prior art: Deno's official documentation implements a similar go-link pattern,
+  demonstrating institutional demand for a standardized go-link protocol. See
+  [their implementation](https://github.com/denoland/docs/blob/6c612a6531de64d6072bd8993bfdf82d769fa90e/middleware/redirects.ts#L152).
 
 ## Web Server
 
@@ -231,15 +234,15 @@ Uses Deno KV; data is stored under the `"go"` namespace key.
 
 All write operations require the header `Authorization: Token ${GO_TOKEN}`.
 
-- GET `/api`
+- GET `/api` (read)
   - Returns the current shortlink map `{ [alias: string]: string }`.
 
-- POST `/api`
+- POST `/api` (write)
   - Body: `{ alias: string; destination: string; force?: boolean }`
   - Creates a shortlink. If alias exists and `force` is not set, returns an
     error.
 
-- DELETE `/api`
+- DELETE `/api` (write)
   - Body: `{ alias: string }`
   - Deletes a shortlink.
 
