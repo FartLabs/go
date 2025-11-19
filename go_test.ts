@@ -131,3 +131,12 @@ Deno.test("backwards compat: section deprecation with host move keeps deep links
   const expected = new URL("https://news.example.com/2023/launch");
   assertEquals(actual.href, expected.href);
 });
+
+Deno.test("go resolves shortlink with path segment without double slash", () => {
+  const input = new URL("https://example.com/xyz/abc");
+  const actual = go(input, {
+    xyz: "https://xyz.example.com",
+  });
+  const expected = new URL("https://xyz.example.com/abc");
+  assertEquals(actual.href, expected.href);
+});
