@@ -33,7 +33,7 @@ redirects.
 This project and its Internet-Draft standardize the deterministic resolution
 algorithm so a single ruleset behaves the same everywhere.
 
-## Design Goals
+## Design goals
 
 - Simplicity: ruleset is a plain key-value map
 - Determinism: longest-prefix match, well-defined query/fragment precedence
@@ -52,7 +52,7 @@ semantics, undermining portability and the “simple JSON file” anchor. If you
 need advanced routing, use tools like Nginx, Caddy, or Cloudflare Rules; this
 library standardizes the "fiddly bits" for simple maps.
 
-## Data Model
+## Data model
 
 ```ts
 type Shortlinks = Record<string, string>;
@@ -65,7 +65,7 @@ const shortlinks = {
 };
 ```
 
-## Portability and Scope
+## Portability and scope
 
 - Stateless resolution from a provided ruleset
 - Storage is out of scope (KV, JSON, DB all fine)
@@ -77,7 +77,7 @@ Teams and OSS orgs running internal go-links who want consistent behavior across
 platforms. This library is in production use across several open-source projects
 and sites.
 
-## Getting Started
+## Getting started
 
 Use via JSR in Deno:
 
@@ -206,11 +206,12 @@ This project is licensed under the Do What The Fuck You Want To Public License
 - Internet-Draft:
   [IETF Datatracker](https://datatracker.ietf.org/doc/draft-go-protocol/)
 - Protocol spec repo: <https://github.com/EthanThatOneKid/go-protocol/>
-- Prior art: Deno's official documentation implements a similar go-link pattern,
-  demonstrating institutional demand for a standardized go-link protocol. See
-  [their implementation](https://github.com/denoland/docs/blob/6c612a6531de64d6072bd8993bfdf82d769fa90e/middleware/redirects.ts#L152).
+- Prior art: Deno's official documentation
+  ([Deno's implementation](https://github.com/denoland/docs/blob/6c612a6531de64d6072bd8993bfdf82d769fa90e/middleware/redirects.ts#L152))
+  implements a similar go-link pattern, demonstrating institutional demand for a
+  standardized go-link protocol.
 
-## Web Server
+## Web server
 
 This repo ships a minimal web UI and API backed by Deno KV to manage shortlinks.
 
@@ -222,12 +223,12 @@ deno task start
 
 Requires Deno and `--unstable-kv`.
 
-### Environment Variables
+### Environment variables
 
 - `GO_TOKEN` (optional): when set, this token is required for POST/DELETE
   requests to `/api`.
 
-### Data Storage
+### Data storage
 
 Uses Deno KV; data is stored under the `"go"` namespace key.
 
