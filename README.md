@@ -224,7 +224,8 @@ Requires Deno and `--unstable-kv`.
 
 ### Environment Variables
 
-- `GO_TOKEN` (optional): token required for POST/DELETE requests to `/api`.
+- `GO_TOKEN` (optional): when set, this token is required for POST/DELETE
+  requests to `/api`.
 
 ### Data Storage
 

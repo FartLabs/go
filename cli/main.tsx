@@ -69,7 +69,11 @@ class GoService {
 }
 
 function isAuthorized(headers: Headers): boolean {
-  return headers.get("Authorization") === `Token ${Deno.env.get("GO_TOKEN")}`;
+  const token = Deno.env.get("GO_TOKEN");
+  if (!token) {
+    return true;
+  }
+  return headers.get("Authorization") === `Token ${token}`;
 }
 
 function GoRouter(props: { service: GoService }) {
