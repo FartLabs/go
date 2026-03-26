@@ -212,6 +212,37 @@ go(new URL("https://example.com/blog/2023/launch"), {
 // => https://news.example.com/2023/launch
 ```
 
+## Managing shortlinks with `jq`
+
+Since shortlink rulesets are JSON objects, you can use `jq` for efficient
+management:
+
+### Add or update a link
+
+```bash
+jq '. + {"alias": "https://example.com"}' links.json > tmp.json && mv tmp.json links.json
+```
+
+### Delete a link
+
+```bash
+jq 'del(."old-alias")' links.json > tmp.json && mv tmp.json links.json
+```
+
+### Sort alphabetically
+
+```bash
+jq --sort-keys . links.json > tmp.json && mv tmp.json links.json
+```
+
+### Data validation
+
+Find empty destinations:
+
+```bash
+jq 'to_entries | .[] | select(.value == "")' links.json
+```
+
 ## Development
 
 ### Prerequisites
