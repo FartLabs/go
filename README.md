@@ -96,6 +96,35 @@ console.log(destination.href); // https://example.com/documentation/reference/v1
 
 JSR documentation: `https://jsr.io/@fartlabs/go`
 
+### Browser
+
+The library runs in the browser via esm.sh — no build step required:
+
+```html
+<script id="shortlinks" type="application/json">
+  {
+    "github": "https://github.com"
+  }
+</script>
+<script type="importmap">
+  {
+    "imports": {
+      "@fartlabs/go": "https://esm.sh/jsr/@fartlabs/go@0.0.3"
+    }
+  }
+</script>
+<script type="module">
+  import { go } from "@fartlabs/go";
+  const shortlinks = JSON.parse(
+    document.getElementById("shortlinks").textContent,
+  );
+  const result = go(new URL(location.href), shortlinks);
+  // ...
+</script>
+```
+
+See [`demo/browser.html`](demo/browser.html) for a full working example.
+
 ## Usage
 
 ### Core API

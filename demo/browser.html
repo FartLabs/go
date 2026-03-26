@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>go — browser demo</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@fartlabs/go": "https://esm.sh/jsr/@fartlabs/go@0.0.3"
+        }
+      }
+    </script>
+    <script id="shortlinks" type="application/json">
+      {
+        "github": "https://github.com",
+        "docs": "/documentation",
+        "docs/api": "/reference"
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import { go } from "@fartlabs/go";
+      const shortlinks = JSON.parse(
+        document.getElementById("shortlinks").textContent,
+      );
+      const url = new URL(window.location.href);
+      const result = go(url, shortlinks);
+      if (result.href !== url.href) {
+        // Redirect via meta-refresh
+        document.open();
+        document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="refresh" content="0;url=${result.href}">
+  <title>Redirecting…</title>
+</head>
+<body>
+  <p>Resolving <code>${url.href}</code> → <a href="${result.href}">${result.href}</a></p>
+</body>
+</html>`);
+        document.close();
+      } else {
+        // Render shortlink directory listing.
+        const entries = Object.entries(shortlinks);
+        document.body.innerHTML = `<ul>${
+          entries
+            .map(
+              ([k, v]) =>
+                `<li><code>${k}</code> → <a href="?${k}">${v}</a></li>`,
+            )
+            .join("")
+        }</ul>`;
+      }
+    </script>
+  </body>
+</html>
