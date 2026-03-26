@@ -1,0 +1,33 @@
+{
+  "skill_name": "go",
+  "evals": [
+    {
+      "id": 1,
+      "name": "add-new-link",
+      "prompt": "Add a new shortlink to links.json: 'yt' pointing to 'https://youtube.com'",
+      "expected_output": "The links.json file should contain the key 'yt' with value 'https://youtube.com'",
+      "files": ["links.json"]
+    },
+    {
+      "id": 2,
+      "name": "delete-link",
+      "prompt": "Delete the 'old-docs' shortlink from links.json",
+      "expected_output": "The 'old-docs' key should be removed from links.json",
+      "files": ["links.json"]
+    },
+    {
+      "id": 3,
+      "name": "validate-file",
+      "prompt": "Check if our shortlinks in links.json are valid.",
+      "expected_output": "The skill should confirm the file is valid or point out errors.",
+      "files": ["links.json"]
+    },
+    {
+      "id": 4,
+      "name": "sort-links",
+      "prompt": "Sort the links in links.json alphabetically.",
+      "expected_output": "The keys in links.json should be in alphabetical order.",
+      "files": ["links.json"]
+    }
+  ]
+}

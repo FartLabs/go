@@ -243,11 +243,23 @@ Find empty destinations:
 jq 'to_entries | .[] | select(.value == "")' links.json
 ```
 
+### AI coding agents
+
+Install the [skill](https://skills.sh/fartlabs/go/go) to teach AI coding agents
+to manage shortlinks using the `go` link protocol:
+
+```sh
+npx skills add fartlabs/go
+```
+
+The agent will then trigger the `go` skill and use standard `jq` patterns to
+perform the task safely and accurately.
+
 ## Development
 
 ### Prerequisites
 
-- Deno latest
+- [`deno`](https://deno.com/)
 
 ### Scripts
 
