@@ -20,23 +20,38 @@ type Shortlinks = Record<string, string>;
 
 class GoService {
   public constructor(
-    private readonly kv: Deno.Kv,
+    private readonly kv: Deno.Kv | undefined,
+    private readonly staticShortlinks: Shortlinks = {},
     private readonly kvNamespace: Deno.KvKey = ["go"],
   ) {}
+
+  public get writable(): boolean {
+    return this.kv !== undefined;
+  }
+
+  private requireKv(): Deno.Kv {
+    if (!this.kv) {
+      throw new Error(
+        "Shortlinks are read-only: no Deno KV database is bound to this deployment.",
+      );
+    }
+    return this.kv;
+  }
 
   public async add(
     alias: string,
     destination: string,
     force = false,
   ): Promise<void> {
-    const shortlinksResult = await this.kv.get<Shortlinks>(this.kvNamespace);
+    const kv = this.requireKv();
+    const shortlinksResult = await kv.get<Shortlinks>(this.kvNamespace);
     const shortlinks = shortlinksResult.value ?? {};
     if (!force && shortlinks[alias]) {
       throw new Error("Shortlink already exists.");
     }
 
     shortlinks[alias] = destination;
-    const result = await this.kv.atomic()
+    const result = await kv.atomic()
       .check(shortlinksResult)
       .set(this.kvNamespace, shortlinks)
       .commit();
@@ -46,14 +61,15 @@ class GoService {
   }
 
   public async delete(alias: string): Promise<void> {
-    const shortlinksResult = await this.kv.get<Shortlinks>(this.kvNamespace);
+    const kv = this.requireKv();
+    const shortlinksResult = await kv.get<Shortlinks>(this.kvNamespace);
     const shortlinks = shortlinksResult.value ?? {};
     if (!shortlinks[alias]) {
       throw new Error("Shortlink does not exist.");
     }
 
     delete shortlinks[alias];
-    const result = await this.kv.atomic()
+    const result = await kv.atomic()
       .check(shortlinksResult)
       .set(this.kvNamespace, shortlinks)
       .commit();
@@ -63,8 +79,11 @@ class GoService {
   }
 
   public async shortlinks(): Promise<Shortlinks> {
+    if (!this.kv) {
+      return this.staticShortlinks;
+    }
     const shortlinksResult = await this.kv.get<Shortlinks>(this.kvNamespace);
-    return shortlinksResult.value ?? {};
+    return { ...this.staticShortlinks, ...(shortlinksResult.value ?? {}) };
   }
 }
 
@@ -85,6 +104,15 @@ function GoRouter(props: { service: GoService }) {
           if (!isAuthorized(ctx.request.headers)) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
           }
+          if (!props.service.writable) {
+            return Response.json(
+              {
+                error:
+                  "Shortlinks are read-only: no Deno KV database is bound.",
+              },
+              { status: 503 },
+            );
+          }
 
           const body = await ctx.request.json();
           await props.service.add(body.alias, body.destination, body.force);
@@ -99,6 +127,15 @@ function GoRouter(props: { service: GoService }) {
         handler={async (ctx) => {
           if (!isAuthorized(ctx.request.headers)) {
             return Response.json({ error: "Unauthorized" }, { status: 401 });
+          }
+          if (!props.service.writable) {
+            return Response.json(
+              {
+                error:
+                  "Shortlinks are read-only: no Deno KV database is bound.",
+              },
+              { status: 503 },
+            );
           }
 
           const body = await ctx.request.json();
@@ -196,9 +233,39 @@ function GoRouter(props: { service: GoService }) {
   );
 }
 
+const staticShortlinks: Shortlinks = JSON.parse(
+  Deno.readTextFileSync(new URL("../links.json", import.meta.url)),
+);
+
+async function openKvIfAvailable(): Promise<Deno.Kv | undefined> {
+  try {
+    return await Deno.openKv();
+  } catch (error) {
+    console.warn(
+      "Deno KV is unavailable, serving links.json read-only:",
+      String(error),
+    );
+    return undefined;
+  }
+}
+
+const kv = await openKvIfAvailable();
+
+let serviceRouter: ReturnType<typeof GoRouter> | undefined;
+
+function getServiceRouter(): ReturnType<typeof GoRouter> {
+  if (!serviceRouter) {
+    serviceRouter = <GoRouter service={new GoService(kv, staticShortlinks)} />;
+  }
+  return serviceRouter;
+}
+
+export default {
+  fetch: (request: Request) => getServiceRouter().fetch(request),
+} satisfies Deno.ServeDefaultExport;
+
 if (import.meta.main) {
-  const kv = await Deno.openKv();
-  const goService = new GoService(kv);
-  const router = <GoRouter service={goService} />;
-  Deno.serve((request) => router.fetch(request));
+  const port = parseInt(Deno.env.get("PORT") ?? "8000");
+  console.info(`go.fart.tools development server: http://localhost:${port}/`);
+  Deno.serve({ port }, (request) => getServiceRouter().fetch(request));
 }
