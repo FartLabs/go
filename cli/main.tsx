@@ -220,6 +220,12 @@ function GoRouter(props: { service: GoService }) {
           const shortlinks = await props.service.shortlinks();
           const url = new URL(ctx.request.url);
           const destination = go(url, shortlinks);
+          if (destination.href === url.href) {
+            return Response.json(
+              { error: `Shortlink not found: ${url.pathname}` },
+              { status: 404 },
+            );
+          }
           return new Response(
             null,
             {
