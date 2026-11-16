@@ -133,8 +133,16 @@ See the Getting Started example above for basic usage. The function signature
 is:
 
 ```ts
-function go(url: URL, shortlinks: Record<string, string>): URL;
+function go(
+  url: URL,
+  shortlinks: Record<string, string>,
+  options?: { caseSensitive?: boolean },
+): URL;
 ```
+
+By default, shortlink keys are matched case-sensitively. Pass
+`{ caseSensitive: false }` to match keys regardless of case; an exact-case key
+still wins, and the remainder of the path keeps its original casing.
 
 Ruleset value types:
 

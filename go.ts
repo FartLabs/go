@@ -2,13 +2,16 @@
  * go resolves a link to its destination given a collection of shortlinks.
  * @param url of incoming request.
  * @param shortlinks collection of shortlinks.
+ * @param options optional resolution settings.
  * @returns the computed destination URL.
  */
 export function go(
   url: URL,
   shortlinks: Record<string, string>,
+  options: GoOptions = {},
 ): URL {
-  const foundURL = findURL(url.pathname, shortlinks, url.origin);
+  const lookup = createLookup(shortlinks, options.caseSensitive ?? true);
+  const foundURL = findURL(url.pathname, lookup, url.origin);
   if (!foundURL) {
     return url;
   }
@@ -21,6 +24,42 @@ export function go(
   return new URL(`${dst.origin}${joinedPathname}${query}${hash}`);
 }
 
+/**
+ * GoOptions are optional settings for {@link go}.
+ */
+export interface GoOptions {
+  /**
+   * caseSensitive controls whether shortlink keys are matched case-sensitively.
+   * Defaults to true. When false, keys match regardless of case, an exact-case
+   * key wins over a differently-cased one, and the rest of the path keeps its
+   * original casing.
+   */
+  caseSensitive?: boolean;
+}
+
+function createLookup(
+  shortlinks: Record<string, string>,
+  caseSensitive: boolean,
+): (id: string) => string | undefined {
+  // Only own properties are shortlinks; inherited ones such as "constructor"
+  // or "toString" must never resolve.
+  const own = (id: string) =>
+    Object.hasOwn(shortlinks, id) ? shortlinks[id] : undefined;
+  if (caseSensitive) {
+    return own;
+  }
+
+  const folded = new Map<string, string>();
+  for (const [key, value] of Object.entries(shortlinks)) {
+    const foldedKey = key.toLowerCase();
+    if (!folded.has(foldedKey)) {
+      folded.set(foldedKey, value);
+    }
+  }
+
+  return (id) => own(id) ?? folded.get(id.toLowerCase());
+}
+
 interface FoundURL {
   pathname: string;
   query: string;
@@ -30,11 +69,11 @@ interface FoundURL {
 
 function findURL<ID extends string>(
   pathname: string,
-  shortlinks: Record<ID, string>,
+  lookup: (id: string) => string | undefined,
   destinationOrigin: string,
   maxInternalRedirects = 256,
 ): FoundURL {
-  let initialId: ID | undefined;
+  const visitedIds = new Set<ID>();
   let initialHash: string | undefined;
   let initialQuery: string | undefined;
   let relativePathname = "";
@@ -58,7 +97,7 @@ function findURL<ID extends string>(
     }
 
     let id = pathname.slice(1) as ID;
-    while (id.length > 0 && !shortlinks[id]) {
+    while (id.length > 0 && !lookup(id)) {
       const slashIndex = id.lastIndexOf("/");
       if (slashIndex === -1) {
         break;
@@ -67,7 +106,8 @@ function findURL<ID extends string>(
       id = id.slice(0, slashIndex) as ID;
     }
 
-    if (!shortlinks[id]) {
+    const target = lookup(id);
+    if (!target) {
       return {
         pathname: relativePathname,
         query: initialQuery || "",
@@ -76,25 +116,37 @@ function findURL<ID extends string>(
       };
     }
 
-    if (shortlinks[id].startsWith("http")) {
+    if (target.startsWith("http")) {
       relativePathname = pathname.slice(id.length + 1) + relativePathname;
 
       return {
         pathname: relativePathname,
         query: initialQuery || "",
         hash: initialHash || "",
-        destination: new URL(shortlinks[id]),
+        destination: new URL(target),
       };
     }
 
-    if (shortlinks[id].startsWith("/")) {
+    if (target.startsWith("/")) {
       relativePathname = pathname.slice(id.length + 1) + relativePathname;
-      pathname = shortlinks[id];
 
-      if (!initialId) {
-        initialId = id;
+      // A shortlink that points at its own path (e.g., "brand": "/brand") is a
+      // no-op: the page already lives there, so pass the path through as-is.
+      if (target === `/${id}`) {
+        return {
+          pathname: relativePathname,
+          query: initialQuery || "",
+          hash: initialHash || "",
+          destination: new URL(target, destinationOrigin),
+        };
       }
 
+      if (visitedIds.has(id)) {
+        throw new Error(`cyclic shortlink: ${id}`);
+      }
+
+      visitedIds.add(id);
+      pathname = target;
       continue;
     }
   }
