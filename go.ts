@@ -41,8 +41,12 @@ function createLookup(
   shortlinks: Record<string, string>,
   caseSensitive: boolean,
 ): (id: string) => string | undefined {
+  // Only own properties are shortlinks; inherited ones such as "constructor"
+  // or "toString" must never resolve.
+  const own = (id: string) =>
+    Object.hasOwn(shortlinks, id) ? shortlinks[id] : undefined;
   if (caseSensitive) {
-    return (id) => shortlinks[id];
+    return own;
   }
 
   const folded = new Map<string, string>();
@@ -53,7 +57,7 @@ function createLookup(
     }
   }
 
-  return (id) => shortlinks[id] ?? folded.get(id.toLowerCase());
+  return (id) => own(id) ?? folded.get(id.toLowerCase());
 }
 
 interface FoundURL {

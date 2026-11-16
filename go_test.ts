@@ -284,6 +284,7 @@ Deno.test("go cycles: does not mutate the shortlinks argument", () => {
 Deno.test("go cycles: the root path with no entry passes through", () => {
   const input = new URL("https://example.com/");
   assertEquals(go(input, { brand: "/brand" }).href, input.href);
+});
 
 Deno.test("go is case-sensitive by default", () => {
   const input = new URL("https://example.com/GitHub");
@@ -334,4 +335,200 @@ Deno.test("go folds case through chained internal redirects", () => {
     { caseSensitive: false },
   );
   assertEquals(actual.href, "https://example.com/done");
+});
+
+Deno.test("go caseSensitive: explicit true and an unset option both match exactly", () => {
+  const shortlinks = { github: "https://github.com/FartLabs/go" };
+  const input = new URL("https://example.com/GITHUB");
+  assertEquals(go(input, shortlinks, { caseSensitive: true }), input);
+  assertEquals(go(input, shortlinks, {}), input);
+  assertEquals(go(input, shortlinks, { caseSensitive: undefined }), input);
+});
+
+Deno.test("go caseSensitive: exact-case requests still resolve in both modes", () => {
+  const shortlinks = { GitHub: "https://github.com/FartLabs/go" };
+  for (const options of [{}, { caseSensitive: false }]) {
+    assertEquals(
+      go(new URL("https://example.com/GitHub"), shortlinks, options).href,
+      "https://github.com/FartLabs/go",
+    );
+  }
+});
+
+Deno.test("go caseSensitive: false folds hyphenated and mixed-case keys", () => {
+  const actual = go(
+    new URL("https://example.com/student-PACK"),
+    { "Student-Pack": "/blog/806" },
+    { caseSensitive: false },
+  );
+  assertEquals(actual.href, "https://example.com/blog/806");
+});
+
+Deno.test("go caseSensitive: false folds nested keys and keeps remainder casing", () => {
+  const actual = go(
+    new URL("https://example.com/docs/API/v1/Intro"),
+    { "Docs/api": "https://example.com/guide" },
+    { caseSensitive: false },
+  );
+  assertEquals(actual.href, "https://example.com/guide/v1/Intro");
+});
+
+Deno.test("go caseSensitive: false falls back to a shorter prefix key", () => {
+  const actual = go(
+    new URL("https://example.com/DOCS/Sub/Path"),
+    { docs: "https://d.example.com" },
+    { caseSensitive: false },
+  );
+  assertEquals(actual.href, "https://d.example.com/Sub/Path");
+});
+
+Deno.test("go caseSensitive: false merges query and hash like the default", () => {
+  const actual = go(
+    new URL("https://example.com/GitHub?x=1#top"),
+    { github: "https://github.com/FartLabs/go?tab=readme#intro" },
+    { caseSensitive: false },
+  );
+  assertEquals(actual.href, "https://github.com/FartLabs/go?tab=readme&x=1#top");
+});
+
+Deno.test("go caseSensitive: false picks the first-declared key on a collision", () => {
+  const options = { caseSensitive: false };
+  assertEquals(
+    go(
+      new URL("https://example.com/DOCS"),
+      { Docs: "https://example.com/upper", docs: "https://example.com/lower" },
+      options,
+    ).href,
+    "https://example.com/upper",
+  );
+  assertEquals(
+    go(
+      new URL("https://example.com/DOCS"),
+      { docs: "https://example.com/lower", Docs: "https://example.com/upper" },
+      options,
+    ).href,
+    "https://example.com/lower",
+  );
+});
+
+Deno.test("go caseSensitive: false prefers an exact nested key over a folded one", () => {
+  const shortlinks = {
+    "docs/api": "https://example.com/lower",
+    "Docs/API": "https://example.com/upper",
+  };
+  const options = { caseSensitive: false };
+  assertEquals(
+    go(new URL("https://example.com/Docs/API"), shortlinks, options).href,
+    "https://example.com/upper",
+  );
+  assertEquals(
+    go(new URL("https://example.com/docs/api"), shortlinks, options).href,
+    "https://example.com/lower",
+  );
+});
+
+Deno.test("go caseSensitive: false passes unknown paths through with original casing", () => {
+  const input = new URL("https://example.com/Nope/Path?Q=1#Frag");
+  assertEquals(
+    go(input, { other: "https://example.com" }, { caseSensitive: false }).href,
+    input.href,
+  );
+  assertEquals(go(input, {}, { caseSensitive: false }).href, input.href);
+  const root = new URL("https://example.com/");
+  assertEquals(go(root, { a: "/b" }, { caseSensitive: false }).href, root.href);
+});
+
+Deno.test("go caseSensitive: internal redirects need matching case by default", () => {
+  const shortlinks = { start: "/Next", next: "https://example.com/done" };
+  assertEquals(
+    go(new URL("https://example.com/start"), shortlinks).href,
+    "https://example.com/Next",
+  );
+  assertEquals(
+    go(new URL("https://example.com/start"), shortlinks, {
+      caseSensitive: false,
+    }).href,
+    "https://example.com/done",
+  );
+});
+
+Deno.test("go caseSensitive: self-references stay no-ops in both modes", () => {
+  const shortlinks = { brand: "/brand" };
+  assertEquals(
+    go(new URL("https://example.com/brand/x"), shortlinks).href,
+    "https://example.com/brand/x",
+  );
+  assertEquals(
+    go(new URL("https://example.com/BRAND/x"), shortlinks).href,
+    "https://example.com/BRAND/x",
+  );
+  assertEquals(
+    go(new URL("https://example.com/BRAND/x"), shortlinks, {
+      caseSensitive: false,
+    }).href,
+    "https://example.com/brand/x",
+  );
+});
+
+Deno.test("go caseSensitive: false treats a case-variant self-reference as a no-op", () => {
+  const actual = go(
+    new URL("https://example.com/brand/x"),
+    { Brand: "/brand" },
+    { caseSensitive: false },
+  );
+  assertEquals(actual.href, "https://example.com/brand/x");
+});
+
+Deno.test("go caseSensitive: cycles that differ only by case", () => {
+  const shortlinks = { a: "/B", b: "/A" };
+  // Case-sensitive: "/B" matches no key, so the chain simply ends.
+  assertEquals(
+    go(new URL("https://example.com/a"), shortlinks).href,
+    "https://example.com/B",
+  );
+  // Case-insensitive: the two entries form a cycle.
+  assertThrows(
+    () =>
+      go(new URL("https://example.com/a"), shortlinks, {
+        caseSensitive: false,
+      }),
+    Error,
+    "cyclic shortlink",
+  );
+});
+
+Deno.test("go ignores inherited Object.prototype members as shortlinks", () => {
+  for (const options of [{}, { caseSensitive: false }]) {
+    for (
+      const path of [
+        "/constructor",
+        "/toString/x",
+        "/hasOwnProperty",
+        "/valueOf",
+        "/__proto__",
+        "/CONSTRUCTOR",
+      ]
+    ) {
+      const input = new URL(`https://example.com${path}`);
+      assertEquals(go(input, {}, options).href, input.href, `${path}`);
+    }
+  }
+});
+
+Deno.test("go resolves own shortlinks named like Object.prototype members", () => {
+  const shortlinks = { constructor: "https://example.com/real" };
+  assertEquals(
+    go(new URL("https://example.com/constructor"), shortlinks).href,
+    "https://example.com/real",
+  );
+});
+
+Deno.test("go caseSensitive: false does not mutate shortlinks or options", () => {
+  const shortlinks = { Docs: "https://example.com/d", brand: "/brand" };
+  const options = { caseSensitive: false };
+  const shortlinksSnapshot = structuredClone(shortlinks);
+  go(new URL("https://example.com/DOCS"), shortlinks, options);
+  go(new URL("https://example.com/BRAND/x"), shortlinks, options);
+  assertEquals(shortlinks, shortlinksSnapshot);
+  assertEquals(options, { caseSensitive: false });
 });
