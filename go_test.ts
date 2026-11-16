@@ -388,7 +388,10 @@ Deno.test("go caseSensitive: false merges query and hash like the default", () =
     { github: "https://github.com/FartLabs/go?tab=readme#intro" },
     { caseSensitive: false },
   );
-  assertEquals(actual.href, "https://github.com/FartLabs/go?tab=readme&x=1#top");
+  assertEquals(
+    actual.href,
+    "https://github.com/FartLabs/go?tab=readme&x=1#top",
+  );
 });
 
 Deno.test("go caseSensitive: false picks the first-declared key on a collision", () => {
