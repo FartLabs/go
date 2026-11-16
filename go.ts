@@ -34,7 +34,7 @@ function findURL<ID extends string>(
   destinationOrigin: string,
   maxInternalRedirects = 256,
 ): FoundURL {
-  let initialId: ID | undefined;
+  const visitedIds = new Set<ID>();
   let initialHash: string | undefined;
   let initialQuery: string | undefined;
   let relativePathname = "";
@@ -89,12 +89,24 @@ function findURL<ID extends string>(
 
     if (shortlinks[id].startsWith("/")) {
       relativePathname = pathname.slice(id.length + 1) + relativePathname;
-      pathname = shortlinks[id];
 
-      if (!initialId) {
-        initialId = id;
+      // A shortlink that points at its own path (e.g., "brand": "/brand") is a
+      // no-op: the page already lives there, so pass the path through as-is.
+      if (shortlinks[id] === `/${id}`) {
+        return {
+          pathname: relativePathname,
+          query: initialQuery || "",
+          hash: initialHash || "",
+          destination: new URL(shortlinks[id], destinationOrigin),
+        };
       }
 
+      if (visitedIds.has(id)) {
+        throw new Error(`cyclic shortlink: ${id}`);
+      }
+
+      visitedIds.add(id);
+      pathname = shortlinks[id];
       continue;
     }
   }

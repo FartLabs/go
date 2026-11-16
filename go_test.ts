@@ -23,8 +23,34 @@ Deno.test("go throws for circularly recursive shortlinks", () => {
   } catch (e) {
     error = e as Error;
   } finally {
-    assertEquals(error?.message, "too many internal redirects");
+    assertEquals(error?.message, "cyclic shortlink: zig");
   }
+});
+
+Deno.test("go treats a self-referential shortlink as a no-op", () => {
+  const shortlinks = { brand: "/brand" };
+  assertEquals(
+    go(new URL("https://example.com/brand"), shortlinks).href,
+    "https://example.com/brand",
+  );
+  assertEquals(
+    go(new URL("https://example.com/brand/whatever?a=b#c"), shortlinks).href,
+    "https://example.com/brand/whatever?a=b#c",
+  );
+});
+
+Deno.test("go throws for longer redirect cycles", () => {
+  let error: Error | undefined;
+  try {
+    go(new URL("https://example.com/a/deep"), {
+      a: "/b",
+      b: "/c",
+      c: "/a",
+    });
+  } catch (e) {
+    error = e as Error;
+  }
+  assertEquals(error?.message, "cyclic shortlink: a");
 });
 
 Deno.test("go properly combines queries", () => {
