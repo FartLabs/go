@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertThrows } from "@std/assert";
 import { go } from "./go.ts";
 
 Deno.test("go resolves shortlinks", () => {
@@ -165,4 +165,123 @@ Deno.test("go resolves shortlink with path segment without double slash", () => 
   });
   const expected = new URL("https://xyz.example.com/abc");
   assertEquals(actual.href, expected.href);
+});
+
+Deno.test("go self-reference: nested key passes the remaining path through", () => {
+  const actual = go(new URL("https://example.com/docs/api/v1"), {
+    "docs/api": "/docs/api",
+  });
+  assertEquals(actual.href, "https://example.com/docs/api/v1");
+});
+
+Deno.test("go self-reference: exact path with no remainder", () => {
+  const actual = go(new URL("https://example.com/brand"), {
+    brand: "/brand",
+  });
+  assertEquals(actual.href, "https://example.com/brand");
+});
+
+Deno.test("go self-reference: preserves request query and hash", () => {
+  const actual = go(new URL("https://example.com/brand/logo?v=2#top"), {
+    brand: "/brand",
+  });
+  assertEquals(actual.href, "https://example.com/brand/logo?v=2#top");
+});
+
+Deno.test("go self-reference: does not affect unrelated shortlinks", () => {
+  const shortlinks = {
+    brand: "/brand",
+    gh: "https://github.com/FartLabs/go",
+  };
+  assertEquals(
+    go(new URL("https://example.com/gh/issues"), shortlinks).href,
+    "https://github.com/FartLabs/go/issues",
+  );
+  assertEquals(
+    go(new URL("https://example.com/other"), shortlinks).href,
+    "https://example.com/other",
+  );
+});
+
+Deno.test("go self-reference: a chain ending at a self-reference resolves to it", () => {
+  const actual = go(new URL("https://example.com/x/y"), {
+    x: "/brand",
+    brand: "/brand",
+  });
+  assertEquals(actual.href, "https://example.com/brand/y");
+});
+
+Deno.test("go self-reference: only an exact self-path is a no-op", () => {
+  // A trailing slash, query, or hash makes the target a different resolution
+  // step that loops back to the same entry, which is reported as a cycle.
+  for (const target of ["/brand/", "/brand?x=1", "/brand#top"]) {
+    assertThrows(
+      () => go(new URL("https://example.com/brand/x"), { brand: target }),
+      Error,
+      "cyclic shortlink: brand",
+    );
+  }
+});
+
+Deno.test("go cycles: two-link cycle names the repeated shortlink", () => {
+  assertThrows(
+    () => go(new URL("https://example.com/a"), { a: "/b", b: "/a" }),
+    Error,
+    "cyclic shortlink: a",
+  );
+});
+
+Deno.test("go cycles: entering a cycle from outside is detected", () => {
+  assertThrows(
+    () =>
+      go(new URL("https://example.com/x"), {
+        x: "/a",
+        a: "/b",
+        b: "/a",
+      }),
+    Error,
+    "cyclic shortlink: a",
+  );
+});
+
+Deno.test("go cycles: detected when the entry matches by prefix", () => {
+  assertThrows(
+    () => go(new URL("https://example.com/docs/a"), { docs: "/docs/v1" }),
+    Error,
+    "cyclic shortlink: docs",
+  );
+});
+
+Deno.test("go cycles: a long acyclic chain is not a false positive", () => {
+  const actual = go(new URL("https://example.com/a"), {
+    a: "/b",
+    b: "/c",
+    c: "/d",
+    d: "/e",
+    e: "https://e.example.com",
+  });
+  assertEquals(actual.href, "https://e.example.com/");
+});
+
+Deno.test("go cycles: chain longer than the redirect limit still terminates", () => {
+  const shortlinks: Record<string, string> = {};
+  for (let i = 0; i < 300; i++) shortlinks[`l${i}`] = `/l${i + 1}`;
+  assertThrows(
+    () => go(new URL("https://example.com/l0"), shortlinks),
+    Error,
+    "too many internal redirects",
+  );
+});
+
+Deno.test("go cycles: does not mutate the shortlinks argument", () => {
+  const shortlinks = { brand: "/brand", gh: "https://github.com" };
+  const snapshot = structuredClone(shortlinks);
+  go(new URL("https://example.com/brand/x"), shortlinks);
+  go(new URL("https://example.com/gh"), shortlinks);
+  assertEquals(shortlinks, snapshot);
+});
+
+Deno.test("go cycles: the root path with no entry passes through", () => {
+  const input = new URL("https://example.com/");
+  assertEquals(go(input, { brand: "/brand" }).href, input.href);
 });
