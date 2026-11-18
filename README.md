@@ -291,48 +291,12 @@ This project is licensed under the Do What The Fuck You Want To Public License
   implements a similar go-link pattern, demonstrating institutional demand for a
   standardized go-link protocol.
 
-## Web server
+## Hosting
 
-This repo ships a minimal web UI and API backed by Deno KV to manage shortlinks.
-
-### Run
-
-```bash
-deno task start
-```
-
-Requires Deno and `--unstable-kv`.
-
-### Environment variables
-
-- `GO_TOKEN` (optional): when set, this token is required for POST/DELETE
-  requests to `/api`.
-
-### Data storage
-
-Uses Deno KV; data is stored under the `"go"` namespace key.
-
-### Server API
-
-All write operations require the header `Authorization: Token ${GO_TOKEN}`.
-
-- GET `/api` (read)
-  - Returns the current shortlink map `{ [alias: string]: string }`.
-
-- POST `/api` (write)
-  - Body: `{ alias: string; destination: string; force?: boolean }`
-  - Creates a shortlink. If alias exists and `force` is not set, returns an
-    error.
-
-- DELETE `/api` (write)
-  - Body: `{ alias: string }`
-  - Deletes a shortlink.
-
-### Deployment
-
-Any Deno-compatible environment. The server is a simple `Deno.serve` app using
-Deno KV. Ensure `--unstable-kv` is available and set `GO_TOKEN` for write
-protection.
+This package is only the library. [go.fart.tools](https://go.fart.tools) runs it
+as a Cloudflare Worker; see
+[FartLabs/go.fart.tools](https://github.com/FartLabs/go.fart.tools). The web UI
+and Deno KV API that used to live in this repo (`cli/`) were removed in 0.0.5.
 
 ## Contribute
 
@@ -345,8 +309,6 @@ Run `deno lint` to lint the code.
 ### Test
 
 Run `deno test` to run the tests.
-
-Run `deno task start` to start the server.
 
 ---
 
